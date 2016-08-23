@@ -172,6 +172,11 @@ var tus = require('../dep/tus')
 
     this._initI18n()
     this._initModal()
+    // Can this be deferred until files are selected or the upload process
+    // begins? A rough calculation indicates that it will use 1.2GB of download
+    // bandwidth per 24 hours if run continuously, potentially a problem on
+    // metered internet. Not checking cloudflare's favicon would reduce
+    // data usage to 0.36GB.
     this._initInternetConnectionChecker()
 
     this._$form = $form
@@ -305,6 +310,8 @@ var tus = require('../dep/tus')
 
   Uploader.prototype._startWithXhr = function (cb) {
     var self = this
+    // why generate the assemblyId on the client before the API call?
+    // this API functioanlity is undocumented on the website, should it be?
     this._assemblyId = uuid.v4().replace(/\-/g, "")
     this._formData = this._prepareFormData()
 
@@ -462,7 +469,7 @@ var tus = require('../dep/tus')
     if (!name) {
       return
     }
-
+    
     // Remove old selection from preview areas if possible
     if (name in this._files) {
       var oldFiles = this._files[name]
@@ -538,6 +545,8 @@ var tus = require('../dep/tus')
       return
     }
 
+    // It's spelled "tuple"
+    // https://books.google.com/ngrams/graph?content=tupel%2C+tuple
     for (var i = 0; i < this._options.formData.length; i++) {
       var tupel = this._options.formData[i]
       this._formData.append(tupel[0], tupel[1], tupel[2])
@@ -616,6 +625,7 @@ var tus = require('../dep/tus')
       $('<textarea/>')
         .attr('name', 'transloadit')
         .text(JSON.stringify(this._assembly))
+        // .hide() should be on its own line
         .prependTo(this._$form).hide()
     }
 
@@ -885,6 +895,7 @@ var tus = require('../dep/tus')
   }
 
   Uploader.prototype._abortUpload = function () {
+    // Should this abort tus resumeable uploads?
     if (this._xhr && typeof this._xhr.abort === "function") {
       this._xhr.abort()
     }
@@ -1035,6 +1046,9 @@ var tus = require('../dep/tus')
     }
 
     var self = this
+    // setInterval might not be optimal here, since isOnline doesn't specify any
+    // timeout. The callback is idempotent so no data corruption woes but it
+    // might be a problem on network transitions over cellular networks.
     this._connectionCheckerInterval = setInterval (function() {
       isOnline(function(online) {
         if (self._isOnline && !online) {
